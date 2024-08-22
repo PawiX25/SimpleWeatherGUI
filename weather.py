@@ -83,7 +83,16 @@ def get_forecast(city, days, unit):
         print(f"Unexpected data structure for {city}: {e}")
 
 def main():
-    parser = argparse.ArgumentParser(description="Get weather and forecast data.")
+    parser = argparse.ArgumentParser(
+        description=(
+            "Get weather and forecast data.\n\n"
+            "Examples:\n"
+            "  python script.py London\n"
+            "  python script.py London --days 5\n"
+            "  python script.py London Paris --unit F\n"
+            "  python script.py London --days 7 --unit F\n"
+        )
+    )
     parser.add_argument('cities', type=str, nargs='+', help="City names to get the weather and forecast for.")
     parser.add_argument('--days', type=int, default=3, help="Number of forecast days (1-10). Default is 3.")
     parser.add_argument('--unit', type=str, choices=['C', 'F'], default='C', help="Unit for temperature (C or F). Default is C.")

@@ -1,6 +1,7 @@
 import requests
 import argparse
 from tabulate import tabulate
+import matplotlib.pyplot as plt
 
 API_KEY = 'api_key'
 BASE_URL_CURRENT = 'http://api.weatherapi.com/v1/current.json'
@@ -76,6 +77,10 @@ def get_forecast(city, days, unit):
         forecast = data['forecast']['forecastday']
 
         forecast_data = [["Date", "Condition", "High Temp", "Low Temp", "Chance of Rain", "Precipitation"]]
+        dates = []
+        high_temps = []
+        low_temps = []
+
         for day in forecast:
             date = day['date']
             condition = day['day']['condition']['text']
@@ -91,16 +96,34 @@ def get_forecast(city, days, unit):
                 max_temp = f"{max_temp_f}°F"
                 min_temp = f"{min_temp_f}°F"
                 precipitation = f"{precip_in} in"
+                high_temps.append(max_temp_f)
+                low_temps.append(min_temp_f)
             else:
                 max_temp = f"{max_temp_c}°C"
                 min_temp = f"{min_temp_c}°C"
                 precipitation = f"{precip_mm} mm"
+                high_temps.append(max_temp_c)
+                low_temps.append(min_temp_c)
 
             forecast_data.append([date, condition, max_temp, min_temp, f"{chance_of_rain}%", precipitation])
 
         print(f"\nForecast for {city}:")
         print(tabulate(forecast_data, headers='firstrow', tablefmt='grid'))
-        
+
+        # Plot temperature trends
+        dates = [day['date'] for day in forecast]
+        plt.figure(figsize=(10, 5))
+        plt.plot(dates, high_temps, label='High Temp', marker='o', color='red')
+        plt.plot(dates, low_temps, label='Low Temp', marker='o', color='blue')
+        plt.xlabel('Date')
+        plt.ylabel(f'Temperature ({unit})')
+        plt.title(f'Temperature Trend for {city}')
+        plt.legend()
+        plt.grid(True)
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+        plt.show()
+
     except requests.RequestException as e:
         print(f"Error fetching forecast data for {city}: {e}")
     except KeyError as e:

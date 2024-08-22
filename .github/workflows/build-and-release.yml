@@ -1,0 +1,108 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  create:
+    tags:
+      - '*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Build executable
+      run: |
+        pyinstaller --onefile weather.py
+      shell: bash
+
+    - name: Rename executable
+      run: |
+        if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
+          mv dist/weather dist/weather-linux
+        else
+          mv dist/weather.exe dist/weather-windows.exe
+        fi
+      shell: bash
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: ${{ matrix.os }}-weather
+        path: |
+          dist/weather-linux
+          dist/weather-windows.exe
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Download Ubuntu build artifacts
+      uses: actions/download-artifact@v2
+      with:
+        name: ubuntu-latest-weather
+        path: ./dist/ubuntu
+
+    - name: Download Windows build artifacts
+      uses: actions/download-artifact@v2
+      with:
+        name: windows-latest-weather
+        path: ./dist/windows
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v1.0.0-${{ github.run_number }}
+        release_name: Release v1.0.0-${{ github.run_number }}
+        draft: false
+        prerelease: false
+
+    - name: Upload Ubuntu Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./dist/weather-linux
+        asset_name: weather-linux
+        asset_content_type: application/octet-stream
+
+    - name: Upload Windows Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./dist/weather-windows.exe
+        asset_name: weather-windows.exe
+        asset_content_type: application/octet-stream

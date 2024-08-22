@@ -1,5 +1,6 @@
 import requests
 import argparse
+from tabulate import tabulate
 
 API_KEY = 'api_key'
 BASE_URL_CURRENT = 'http://api.weatherapi.com/v1/current.json'
@@ -34,11 +35,14 @@ def get_weather(city, unit):
             temperature = f"{temperature_c}°C"
             wind_speed = f"{wind_kph} kph"
 
+        weather_data = [
+            ["City", "Region", "Country", "Condition", "Temperature", "Humidity", "Wind Speed"],
+            [city_name, region, country, condition, temperature, f"{humidity}%", wind_speed]
+        ]
+        
         print(f"\nWeather in {city_name}, {region}, {country}:")
-        print(f"Condition: {condition}")
-        print(f"Temperature: {temperature}")
-        print(f"Humidity: {humidity}%")
-        print(f"Wind: {wind_speed}")
+        print(tabulate(weather_data, headers='firstrow', tablefmt='grid'))
+        
     except requests.RequestException as e:
         print(f"Error fetching weather data for {city}: {e}")
     except KeyError as e:
@@ -60,7 +64,8 @@ def get_forecast(city, days, unit):
         response.raise_for_status()
         data = response.json()
         forecast = data['forecast']['forecastday']
-        print(f"\nForecast for {city}:")
+
+        forecast_data = [["Date", "Condition", "High Temp", "Low Temp"]]
         for day in forecast:
             date = day['date']
             condition = day['day']['condition']['text']
@@ -76,7 +81,11 @@ def get_forecast(city, days, unit):
                 max_temp = f"{max_temp_c}°C"
                 min_temp = f"{min_temp_c}°C"
 
-            print(f"{date}: {condition} - High: {max_temp}, Low: {min_temp}")
+            forecast_data.append([date, condition, max_temp, min_temp])
+
+        print(f"\nForecast for {city}:")
+        print(tabulate(forecast_data, headers='firstrow', tablefmt='grid'))
+        
     except requests.RequestException as e:
         print(f"Error fetching forecast data for {city}: {e}")
     except KeyError as e:

@@ -40,9 +40,9 @@ def get_weather(city, unit):
         print(f"Humidity: {humidity}%")
         print(f"Wind: {wind_speed}")
     except requests.RequestException as e:
-        print(f"Error fetching weather data: {e}")
+        print(f"Error fetching weather data for {city}: {e}")
     except KeyError as e:
-        print(f"Unexpected data structure: {e}")
+        print(f"Unexpected data structure for {city}: {e}")
 
 def get_forecast(city, days, unit):
     if days < 1 or days > 10:
@@ -78,27 +78,24 @@ def get_forecast(city, days, unit):
 
             print(f"{date}: {condition} - High: {max_temp}, Low: {min_temp}")
     except requests.RequestException as e:
-        print(f"Error fetching forecast data: {e}")
+        print(f"Error fetching forecast data for {city}: {e}")
     except KeyError as e:
-        print(f"Unexpected data structure: {e}")
+        print(f"Unexpected data structure for {city}: {e}")
 
 def main():
     parser = argparse.ArgumentParser(description="Get weather and forecast data.")
-    parser.add_argument('city', type=str, help="City name to get the weather and forecast for.")
+    parser.add_argument('cities', type=str, nargs='+', help="City names to get the weather and forecast for.")
     parser.add_argument('--days', type=int, default=3, help="Number of forecast days (1-10). Default is 3.")
     parser.add_argument('--unit', type=str, choices=['C', 'F'], default='C', help="Unit for temperature (C or F). Default is C.")
 
     args = parser.parse_args()
-    city = args.city
+    cities = args.cities
     days = args.days
     unit = args.unit
 
-    if days < 1 or days > 10:
-        print("Error: Number of days must be between 1 and 10.")
-        return
-
-    get_weather(city, unit)
-    get_forecast(city, days, unit)
+    for city in cities:
+        get_weather(city, unit)
+        get_forecast(city, days, unit)
 
 if __name__ == '__main__':
     main()

@@ -1,4 +1,5 @@
 import requests
+import argparse
 
 API_KEY = 'api_key'
 BASE_URL_CURRENT = 'http://api.weatherapi.com/v1/current.json'
@@ -10,8 +11,9 @@ def get_weather(city):
         'q': city,
         'aqi': 'no'
     }
-    response = requests.get(BASE_URL_CURRENT, params=params)
-    if response.status_code == 200:
+    try:
+        response = requests.get(BASE_URL_CURRENT, params=params)
+        response.raise_for_status()
         data = response.json()
         location = data['location']
         current = data['current']
@@ -29,8 +31,10 @@ def get_weather(city):
         print(f"Temperature: {temperature_c}°C ({temperature_f}°F)")
         print(f"Humidity: {humidity}%")
         print(f"Wind: {wind_kph} kph ({wind_mph} mph)")
-    else:
-        print(f"Error: Unable to get weather data for {city}. Please check the city name.")
+    except requests.RequestException as e:
+        print(f"Error fetching weather data: {e}")
+    except KeyError as e:
+        print(f"Unexpected data structure: {e}")
 
 def get_forecast(city, days):
     if days < 1 or days > 10:
@@ -43,8 +47,9 @@ def get_forecast(city, days):
         'days': days,
         'aqi': 'no'
     }
-    response = requests.get(BASE_URL_FORECAST, params=params)
-    if response.status_code == 200:
+    try:
+        response = requests.get(BASE_URL_FORECAST, params=params)
+        response.raise_for_status()
         data = response.json()
         forecast = data['forecast']['forecastday']
         print(f"\nForecast for {city}:")
@@ -54,21 +59,23 @@ def get_forecast(city, days):
             max_temp = day['day']['maxtemp_c']
             min_temp = day['day']['mintemp_c']
             print(f"{date}: {condition} - High: {max_temp}°C, Low: {min_temp}°C")
-    else:
-        print(f"Error: Unable to get forecast data for {city}.")
+    except requests.RequestException as e:
+        print(f"Error fetching forecast data: {e}")
+    except KeyError as e:
+        print(f"Unexpected data structure: {e}")
 
 def main():
-    city = input("Enter the city name: ")
-    
-    while True:
-        try:
-            days = int(input("Enter the number of forecast days (1-10, default is 3): ") or 3)
-            if 1 <= days <= 10:
-                break
-            else:
-                print("Error: Number of days must be between 1 and 10.")
-        except ValueError:
-            print("Error: Please enter a valid integer.")
+    parser = argparse.ArgumentParser(description="Get weather and forecast data.")
+    parser.add_argument('city', type=str, help="City name to get the weather and forecast for.")
+    parser.add_argument('--days', type=int, default=3, help="Number of forecast days (1-10). Default is 3.")
+
+    args = parser.parse_args()
+    city = args.city
+    days = args.days
+
+    if days < 1 or days > 10:
+        print("Error: Number of days must be between 1 and 10.")
+        return
 
     get_weather(city)
     get_forecast(city, days)

@@ -19,6 +19,11 @@ def get_weather(city, unit):
         response = requests.get(BASE_URL_CURRENT, params=params)
         response.raise_for_status()
         data = response.json()
+
+        if 'error' in data:
+            print(f"Error: {data['error']['message']}")
+            return None
+
         location = data['location']
         current = data['current']
         city_name = location['name']
@@ -60,8 +65,16 @@ def get_weather(city, unit):
 
     except requests.RequestException as e:
         print(f"Error fetching weather data for {city}: {e}")
+        if response.status_code == 401:
+            print("Error 401: Unauthorized. Please check your API key.")
+        elif response.status_code == 404:
+            print(f"Error 404: City {city} not found. Please check the city name.")
+        elif response.status_code == 500:
+            print("Error 500: Internal Server Error. Please try again later.")
+        return None
     except KeyError as e:
         print(f"Unexpected data structure for {city}: {e}")
+        return None
 
 def get_forecast(city, days, unit):
     if days < 1 or days > 10:
@@ -78,6 +91,11 @@ def get_forecast(city, days, unit):
         response = requests.get(BASE_URL_FORECAST, params=params)
         response.raise_for_status()
         data = response.json()
+
+        if 'error' in data:
+            print(f"Error: {data['error']['message']}")
+            return None
+
         forecast = data['forecast']['forecastday']
 
         forecast_data = [["Date", "Condition", "High Temp", "Low Temp", "Chance of Rain", "Precipitation"]]
@@ -131,8 +149,16 @@ def get_forecast(city, days, unit):
 
     except requests.RequestException as e:
         print(f"Error fetching forecast data for {city}: {e}")
+        if response.status_code == 401:
+            print("Error 401: Unauthorized. Please check your API key.")
+        elif response.status_code == 404:
+            print(f"Error 404: City {city} not found. Please check the city name.")
+        elif response.status_code == 500:
+            print("Error 500: Internal Server Error. Please try again later.")
+        return None
     except KeyError as e:
         print(f"Unexpected data structure for {city}: {e}")
+        return None
 
 def save_to_file(weather_data, forecast_data, city, output_file):
     with open(output_file, 'a', newline='') as file:
@@ -185,10 +211,10 @@ def main():
 
     for city in cities:
         weather_data = get_weather(city, unit)
-        forecast_data = get_forecast(city, days, unit)
-
-        if args.output and weather_data and forecast_data:
-            save_to_file(weather_data, forecast_data, city, args.output)
+        if weather_data:
+            forecast_data = get_forecast(city, days, unit)
+            if forecast_data and args.output:
+                save_to_file(weather_data, forecast_data, city, args.output)
 
 if __name__ == '__main__':
     main()

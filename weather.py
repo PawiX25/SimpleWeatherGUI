@@ -2,6 +2,8 @@ import requests
 import argparse
 from tabulate import tabulate
 import matplotlib.pyplot as plt
+import sys
+import csv
 
 API_KEY = 'api_key'
 BASE_URL_CURRENT = 'http://api.weatherapi.com/v1/current.json'
@@ -54,6 +56,8 @@ def get_weather(city, unit):
         print(f"\nWeather in {city_name}, {region}, {country}:")
         print(tabulate(weather_data, headers='firstrow', tablefmt='grid'))
         
+        return weather_data[1] 
+
     except requests.RequestException as e:
         print(f"Error fetching weather data for {city}: {e}")
     except KeyError as e:
@@ -123,10 +127,24 @@ def get_forecast(city, days, unit):
         plt.tight_layout()
         plt.show()
 
+        return forecast_data[1:]
+
     except requests.RequestException as e:
         print(f"Error fetching forecast data for {city}: {e}")
     except KeyError as e:
         print(f"Unexpected data structure for {city}: {e}")
+
+def save_to_file(weather_data, forecast_data, city, output_file):
+    with open(output_file, 'a', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(["Weather for", city])
+        writer.writerow(["City", "Region", "Country", "Condition", "Temperature", "Feels Like", "Humidity", "Wind Speed", "Wind Direction", "UV Index", "Precipitation"])
+        writer.writerow(weather_data)
+        writer.writerow([])
+        writer.writerow(["Forecast for", city])
+        writer.writerow(["Date", "Condition", "High Temp", "Low Temp", "Chance of Rain", "Precipitation"])
+        writer.writerows(forecast_data)
+        writer.writerow([]) 
 
 def main():
     parser = argparse.ArgumentParser(
@@ -142,6 +160,7 @@ def main():
     parser.add_argument('cities', type=str, nargs='*', help="City names to get the weather and forecast for.")
     parser.add_argument('--days', type=int, default=3, help="Number of forecast days (1-10). Default is 3.")
     parser.add_argument('--unit', type=str, choices=['C', 'F'], default='C', help="Unit for temperature (C or F). Default is C.")
+    parser.add_argument('--output', type=str, help="Output file to save the weather and forecast data.")
 
     args = parser.parse_args()
 
@@ -165,8 +184,11 @@ def main():
         unit = args.unit
 
     for city in cities:
-        get_weather(city, unit)
-        get_forecast(city, days, unit)
+        weather_data = get_weather(city, unit)
+        forecast_data = get_forecast(city, days, unit)
+
+        if args.output and weather_data and forecast_data:
+            save_to_file(weather_data, forecast_data, city, args.output)
 
 if __name__ == '__main__':
     main()

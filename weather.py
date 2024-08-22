@@ -110,7 +110,6 @@ def get_forecast(city, days, unit):
         print(f"\nForecast for {city}:")
         print(tabulate(forecast_data, headers='firstrow', tablefmt='grid'))
 
-        # Plot temperature trends
         dates = [day['date'] for day in forecast]
         plt.figure(figsize=(10, 5))
         plt.plot(dates, high_temps, label='High Temp', marker='o', color='red')
@@ -140,14 +139,30 @@ def main():
             "  python script.py London --days 7 --unit F\n"
         )
     )
-    parser.add_argument('cities', type=str, nargs='+', help="City names to get the weather and forecast for.")
+    parser.add_argument('cities', type=str, nargs='*', help="City names to get the weather and forecast for.")
     parser.add_argument('--days', type=int, default=3, help="Number of forecast days (1-10). Default is 3.")
     parser.add_argument('--unit', type=str, choices=['C', 'F'], default='C', help="Unit for temperature (C or F). Default is C.")
 
     args = parser.parse_args()
-    cities = args.cities
-    days = args.days
-    unit = args.unit
+
+    if not args.cities:
+        cities = input("Enter city names (separated by commas): ").split(',')
+        cities = [city.strip() for city in cities]
+    else:
+        cities = args.cities
+
+    if args.days is None:
+        days = int(input("Enter number of forecast days (1-10): "))
+    else:
+        days = args.days
+
+    if args.unit is None:
+        unit = input("Enter temperature unit (C or F): ").strip().upper()
+        while unit not in ['C', 'F']:
+            print("Invalid unit. Please enter 'C' or 'F'.")
+            unit = input("Enter temperature unit (C or F): ").strip().upper()
+    else:
+        unit = args.unit
 
     for city in cities:
         get_weather(city, unit)

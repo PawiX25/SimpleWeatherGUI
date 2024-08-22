@@ -50,13 +50,17 @@ jobs:
         fi
       shell: bash
 
-    - name: Upload artifact
+    - name: Upload Linux build artifact
       uses: actions/upload-artifact@v2
       with:
-        name: ${{ matrix.os }}-weather
-        path: |
-          dist/weather-linux
-          dist/weather-windows.exe
+        name: weather-linux
+        path: dist/weather-linux
+
+    - name: Upload Windows build artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: weather-windows
+        path: dist/weather-windows.exe
 
   release:
     needs: build
@@ -65,17 +69,17 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
-    - name: Download Ubuntu build artifacts
+    - name: Download Linux build artifact
       uses: actions/download-artifact@v2
       with:
-        name: ubuntu-latest-weather
-        path: ./dist/ubuntu
+        name: weather-linux
+        path: ./dist
 
-    - name: Download Windows build artifacts
+    - name: Download Windows build artifact
       uses: actions/download-artifact@v2
       with:
-        name: windows-latest-weather
-        path: ./dist/windows
+        name: weather-windows
+        path: ./dist
 
     - name: Create Release
       id: create_release
@@ -88,7 +92,7 @@ jobs:
         draft: false
         prerelease: false
 
-    - name: Upload Ubuntu Release Asset
+    - name: Upload Linux Release Asset
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

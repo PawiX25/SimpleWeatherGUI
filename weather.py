@@ -53,19 +53,19 @@ def get_weather(city, unit):
             wind_speed = f"{wind_kph:.1f} kph"
             precipitation = f"{precip_mm:.1f} mm"
 
-        weather_data = (
-            f"City: {city_name}\n"
-            f"Region: {region}\n"
-            f"Country: {country}\n"
-            f"Condition: {condition}\n"
-            f"Temperature: {temperature}\n"
-            f"Feels Like: {feels_like}\n"
-            f"Humidity: {humidity}%\n"
-            f"Wind Speed: {wind_speed}\n"
-            f"Wind Direction: {wind_dir}\n"
-            f"UV Index: {uv_index}\n"
-            f"Precipitation: {precipitation}"
-        )
+        weather_data = {
+            "City": city_name,
+            "Region": region,
+            "Country": country,
+            "Condition": condition,
+            "Temperature": temperature,
+            "Feels Like": feels_like,
+            "Humidity": f"{humidity}%",
+            "Wind Speed": wind_speed,
+            "Wind Direction": wind_dir,
+            "UV Index": uv_index,
+            "Precipitation": precipitation
+        }
 
         return weather_data
 
@@ -95,7 +95,7 @@ def get_forecast(city, days, unit):
 
         forecast = data['forecast']['forecastday']
 
-        forecast_lines = ["Date | Condition | High Temp | Low Temp | Chance of Rain | Precipitation"]
+        forecast_data = []
         dates = []
         high_temps = []
         low_temps = []
@@ -124,9 +124,16 @@ def get_forecast(city, days, unit):
                 high_temps.append(max_temp_c)
                 low_temps.append(min_temp_c)
 
-            forecast_lines.append(f"{date} | {condition} | {max_temp} | {min_temp} | {chance_of_rain}% | {precipitation}")
+            forecast_data.append({
+                "Date": date,
+                "Condition": condition,
+                "High Temp": max_temp,
+                "Low Temp": min_temp,
+                "Chance of Rain": f"{chance_of_rain}%",
+                "Precipitation": precipitation
+            })
 
-        return "\n".join(forecast_lines), dates, high_temps, low_temps
+        return forecast_data, dates, high_temps, low_temps
 
     except requests.RequestException as e:
         messagebox.showerror("Error", f"Error fetching forecast data for {city}: {e}")
@@ -156,15 +163,13 @@ def display_weather_and_forecast():
         forecast_data, dates, high_temps, low_temps = get_forecast(city, days, unit)
         if forecast_data:
 
-            weather_display.config(state=tk.NORMAL)
-            weather_display.delete(1.0, tk.END)
-            weather_display.insert(tk.END, weather_data)
-            weather_display.config(state=tk.DISABLED)
+            weather_tree.delete(*weather_tree.get_children())
+            for key, value in weather_data.items():
+                weather_tree.insert('', 'end', values=(key, value))
 
-            forecast_display.config(state=tk.NORMAL)
-            forecast_display.delete(1.0, tk.END)
-            forecast_display.insert(tk.END, forecast_data)
-            forecast_display.config(state=tk.DISABLED)
+            forecast_tree.delete(*forecast_tree.get_children())
+            for item in forecast_data:
+                forecast_tree.insert('', 'end', values=(item["Date"], item["Condition"], item["High Temp"], item["Low Temp"], item["Chance of Rain"], item["Precipitation"]))
 
             fig = plot_forecast(dates, high_temps, low_temps)
             for widget in plot_frame.winfo_children():
@@ -189,12 +194,13 @@ def save_to_file():
                 writer = csv.writer(file)
                 writer.writerow(["Weather for", city])
                 writer.writerow(["City", "Region", "Country", "Condition", "Temperature", "Feels Like", "Humidity", "Wind Speed", "Wind Direction", "UV Index", "Precipitation"])
-                for line in weather_data.split('\n'):
-                    writer.writerow([line])
+                for key, value in weather_data.items():
+                    writer.writerow([f"{key}: {value}"])
                 writer.writerow([])
                 writer.writerow(["Forecast for", city])
                 writer.writerow(["Date", "Condition", "High Temp", "Low Temp", "Chance of Rain", "Precipitation"])
-                writer.writerow([line for line in forecast_data.split('\n')])
+                for item in forecast_data:
+                    writer.writerow([f"{key}: {value}" for key, value in item.items()])
                 writer.writerow([]) 
 
             messagebox.showinfo("Saved", f"Data saved to {output_file}")
@@ -221,17 +227,21 @@ unit_combobox.grid(row=2, column=1)
 ttk.Button(frame, text="Get Weather and Forecast", command=display_weather_and_forecast).grid(row=3, column=0, columnspan=2, pady=5)
 ttk.Button(frame, text="Save to File", command=save_to_file).grid(row=4, column=0, columnspan=2, pady=5)
 
-weather_text = tk.StringVar()
-forecast_text = tk.StringVar()
 ttk.Label(frame, text="Weather Data:").grid(row=5, column=0, columnspan=2, sticky=tk.W)
-weather_display = tk.Text(frame, height=10, width=80, wrap=tk.WORD, bg="white")
-weather_display.grid(row=6, column=0, columnspan=2)
-weather_display.config(state=tk.DISABLED)
+weather_tree = ttk.Treeview(frame, columns=("Attribute", "Value"), show="headings", height=10)
+weather_tree.heading("Attribute", text="Attribute")
+weather_tree.heading("Value", text="Value")
+weather_tree.grid(row=6, column=0, columnspan=2, sticky=(tk.W, tk.E))
 
 ttk.Label(frame, text="Forecast Data:").grid(row=7, column=0, columnspan=2, sticky=tk.W)
-forecast_display = tk.Text(frame, height=10, width=80, wrap=tk.WORD, bg="white")
-forecast_display.grid(row=8, column=0, columnspan=2)
-forecast_display.config(state=tk.DISABLED)
+forecast_tree = ttk.Treeview(frame, columns=("Date", "Condition", "High Temp", "Low Temp", "Chance of Rain", "Precipitation"), show="headings", height=10)
+forecast_tree.heading("Date", text="Date")
+forecast_tree.heading("Condition", text="Condition")
+forecast_tree.heading("High Temp", text="High Temp")
+forecast_tree.heading("Low Temp", text="Low Temp")
+forecast_tree.heading("Chance of Rain", text="Chance of Rain")
+forecast_tree.heading("Precipitation", text="Precipitation")
+forecast_tree.grid(row=8, column=0, columnspan=2, sticky=(tk.W, tk.E))
 
 plot_frame = ttk.Frame(root)
 plot_frame.grid(row=1, column=0, pady=10, sticky=(tk.W, tk.E, tk.N, tk.S))

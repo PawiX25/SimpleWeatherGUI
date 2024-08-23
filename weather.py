@@ -144,14 +144,19 @@ def get_forecast(city, days, unit):
         messagebox.showerror("Error", f"Error fetching forecast data for {city}: {e}")
         return None, [], [], [], [], []
 
-def plot_forecast(dates, high_temps, low_temps, precipitations, uv_indexes):
+def plot_forecast(dates, high_temps, low_temps, precipitations, uv_indexes, plot_style):
     if not dates or not high_temps or not low_temps:
         raise ValueError("No data available for plotting.")
 
     fig, ax1 = plt.subplots(figsize=(12, 6))
 
-    ax1.plot(dates, high_temps, label='High Temp', marker='o', color='red', linestyle='-', linewidth=2)
-    ax1.plot(dates, low_temps, label='Low Temp', marker='o', color='blue', linestyle='-', linewidth=2)
+    if plot_style == "Line":
+        ax1.plot(dates, high_temps, label='High Temp', marker='o', color='red', linestyle='-', linewidth=2)
+        ax1.plot(dates, low_temps, label='Low Temp', marker='o', color='blue', linestyle='-', linewidth=2)
+    elif plot_style == "Bar":
+        ax1.bar(dates, high_temps, label='High Temp', color='red', alpha=0.6)
+        ax1.bar(dates, low_temps, label='Low Temp', color='blue', alpha=0.6)
+
     ax1.set_xlabel('Date', fontsize=12)
     ax1.set_ylabel('Temperature (°C or °F)', fontsize=12)
     ax1.set_title('Weather Trends', fontsize=14)
@@ -172,6 +177,7 @@ def display_weather_and_forecast():
     city = city_entry.get()
     days = int(days_entry.get())
     unit = unit_combobox.get()
+    plot_style = plot_style_combobox.get()
 
     weather_data = get_weather(city, unit)
     if weather_data:
@@ -187,7 +193,7 @@ def display_weather_and_forecast():
                 forecast_tree.insert('', 'end', values=(item["Date"], item["Condition"], item["High Temp"], item["Low Temp"], item["Chance of Rain"], item["Precipitation"]))
 
             try:
-                fig = plot_forecast(dates, high_temps, low_temps, precipitations, uv_indexes)
+                fig = plot_forecast(dates, high_temps, low_temps, precipitations, uv_indexes, plot_style)
                 for widget in plot_frame.winfo_children():
                     widget.destroy()
                 canvas = FigureCanvasTkAgg(fig, master=plot_frame)
@@ -240,13 +246,18 @@ unit_combobox = ttk.Combobox(root, values=["C", "F"])
 unit_combobox.grid(row=2, column=1, padx=5, pady=5)
 unit_combobox.set("C")
 
-tk.Button(root, text="Get Weather and Forecast", command=display_weather_and_forecast).grid(row=3, column=0, columnspan=2, padx=5, pady=5)
-tk.Button(root, text="Save to File", command=save_to_file).grid(row=4, column=0, columnspan=2, padx=5, pady=5)
+tk.Label(root, text="Plot Style:").grid(row=3, column=0, padx=5, pady=5)
+plot_style_combobox = ttk.Combobox(root, values=["Line", "Bar"])
+plot_style_combobox.grid(row=3, column=1, padx=5, pady=5)
+plot_style_combobox.set("Line")
+
+tk.Button(root, text="Get Weather and Forecast", command=display_weather_and_forecast).grid(row=4, column=0, columnspan=2, padx=5, pady=5)
+tk.Button(root, text="Save to File", command=save_to_file).grid(row=5, column=0, columnspan=2, padx=5, pady=5)
 
 weather_tree = ttk.Treeview(root, columns=("Attribute", "Value"), show='headings')
 weather_tree.heading("Attribute", text="Attribute")
 weather_tree.heading("Value", text="Value")
-weather_tree.grid(row=5, column=0, columnspan=2, padx=5, pady=5)
+weather_tree.grid(row=6, column=0, columnspan=2, padx=5, pady=5)
 
 forecast_tree = ttk.Treeview(root, columns=("Date", "Condition", "High Temp", "Low Temp", "Chance of Rain", "Precipitation"), show='headings')
 forecast_tree.heading("Date", text="Date")
@@ -255,9 +266,9 @@ forecast_tree.heading("High Temp", text="High Temp")
 forecast_tree.heading("Low Temp", text="Low Temp")
 forecast_tree.heading("Chance of Rain", text="Chance of Rain")
 forecast_tree.heading("Precipitation", text="Precipitation")
-forecast_tree.grid(row=6, column=0, columnspan=2, padx=5, pady=5)
+forecast_tree.grid(row=7, column=0, columnspan=2, padx=5, pady=5)
 
 plot_frame = tk.Frame(root)
-plot_frame.grid(row=7, column=0, columnspan=2, padx=5, pady=5)
+plot_frame.grid(row=8, column=0, columnspan=2, padx=5, pady=5)
 
 root.mainloop()

@@ -1,6 +1,7 @@
 import requests
 import tkinter as tk
 from tkinter import ttk, messagebox
+from ttkthemes import ThemedTk, ThemedStyle
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import csv
@@ -269,11 +270,23 @@ def open_settings_window():
 
     tk.Button(settings_window, text="Save", command=save_settings).grid(row=3, column=0, columnspan=2, pady=10)
 
-root = tk.Tk()
+def change_theme(theme):
+    style.theme_use(theme)
+
+root = ThemedTk()
 root.title("Weather Application")
+
+style = ThemedStyle(root)
 
 menu_bar = tk.Menu(root)
 root.config(menu=menu_bar)
+
+theme_menu = tk.Menu(menu_bar, tearoff=0)
+menu_bar.add_cascade(label="Themes", menu=theme_menu)
+
+available_themes = style.get_themes()
+for theme in available_themes:
+    theme_menu.add_command(label=theme, command=lambda t=theme: change_theme(t))
 
 settings_menu = tk.Menu(menu_bar, tearoff=0)
 menu_bar.add_cascade(label="Settings", menu=settings_menu)

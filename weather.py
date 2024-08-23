@@ -76,7 +76,7 @@ def get_weather(city, unit):
 def get_forecast(city, days, unit):
     if days < 1 or days > 10:
         messagebox.showerror("Error", "Forecast days must be between 1 and 10.")
-        return None, [], [], []
+        return None, [], [], [], [], []
 
     params = {
         'key': API_KEY,
@@ -91,7 +91,7 @@ def get_forecast(city, days, unit):
 
         if 'error' in data:
             messagebox.showerror("Error", data['error']['message'])
-            return None, [], [], []
+            return None, [], [], [], [], []
 
         forecast = data['forecast']['forecastday']
 
@@ -99,6 +99,8 @@ def get_forecast(city, days, unit):
         dates = []
         high_temps = []
         low_temps = []
+        precipitations = []
+        uv_indexes = []
 
         for day in forecast:
             date = day['date']
@@ -107,9 +109,9 @@ def get_forecast(city, days, unit):
             min_temp_c = day['day']['mintemp_c']
             max_temp_f = day['day']['maxtemp_f']
             min_temp_f = day['day']['mintemp_f']
-            chance_of_rain = day['day']['daily_chance_of_rain']
             precip_mm = day['day']['totalprecip_mm']
             precip_in = day['day']['totalprecip_in']
+            uv_index = day['day']['uv']
 
             if unit.upper() == 'F':
                 max_temp = f"{max_temp_f:.1f}°F"
@@ -129,32 +131,41 @@ def get_forecast(city, days, unit):
                 "Condition": condition,
                 "High Temp": max_temp,
                 "Low Temp": min_temp,
-                "Chance of Rain": f"{chance_of_rain}%",
+                "Chance of Rain": f"{day['day']['daily_chance_of_rain']}%",
                 "Precipitation": precipitation
             })
             dates.append(date)
+            precipitations.append(precip_mm if unit.upper() == 'C' else precip_in)
+            uv_indexes.append(uv_index)
 
-        return forecast_data, dates, high_temps, low_temps
+        return forecast_data, dates, high_temps, low_temps, precipitations, uv_indexes
 
     except requests.RequestException as e:
         messagebox.showerror("Error", f"Error fetching forecast data for {city}: {e}")
-        return None, [], [], []
+        return None, [], [], [], [], []
 
-def plot_forecast(dates, high_temps, low_temps):
+def plot_forecast(dates, high_temps, low_temps, precipitations, uv_indexes):
     if not dates or not high_temps or not low_temps:
         raise ValueError("No data available for plotting.")
 
-    fig, ax = plt.subplots(figsize=(10, 5))
-    ax.plot(dates, high_temps, label='High Temp', marker='o', color='red', linestyle='-', linewidth=2)
-    ax.plot(dates, low_temps, label='Low Temp', marker='o', color='blue', linestyle='-', linewidth=2)
-    ax.set_xlabel('Date', fontsize=12)
-    ax.set_ylabel('Temperature', fontsize=12)
-    ax.set_title('Temperature Trend', fontsize=14)
-    ax.legend()
-    ax.grid(True)
-    plt.xticks(rotation=45, ha='right', fontsize=10)
-    plt.tight_layout()
+    fig, ax1 = plt.subplots(figsize=(12, 6))
 
+    ax1.plot(dates, high_temps, label='High Temp', marker='o', color='red', linestyle='-', linewidth=2)
+    ax1.plot(dates, low_temps, label='Low Temp', marker='o', color='blue', linestyle='-', linewidth=2)
+    ax1.set_xlabel('Date', fontsize=12)
+    ax1.set_ylabel('Temperature (°C or °F)', fontsize=12)
+    ax1.set_title('Weather Trends', fontsize=14)
+    ax1.legend(loc='upper left')
+    ax1.grid(True)
+    plt.xticks(rotation=45, ha='right', fontsize=10)
+
+    ax2 = ax1.twinx()
+    ax2.plot(dates, precipitations, label='Precipitation', marker='s', color='green', linestyle='--', linewidth=2)
+    ax2.plot(dates, uv_indexes, label='UV Index', marker='^', color='purple', linestyle='--', linewidth=2)
+    ax2.set_ylabel('Precipitation (mm or in) / UV Index', fontsize=12)
+    ax2.legend(loc='upper right')
+
+    plt.tight_layout()
     return fig
 
 def display_weather_and_forecast():
@@ -164,7 +175,7 @@ def display_weather_and_forecast():
 
     weather_data = get_weather(city, unit)
     if weather_data:
-        forecast_data, dates, high_temps, low_temps = get_forecast(city, days, unit)
+        forecast_data, dates, high_temps, low_temps, precipitations, uv_indexes = get_forecast(city, days, unit)
         if forecast_data:
 
             weather_tree.delete(*weather_tree.get_children())
@@ -176,7 +187,7 @@ def display_weather_and_forecast():
                 forecast_tree.insert('', 'end', values=(item["Date"], item["Condition"], item["High Temp"], item["Low Temp"], item["Chance of Rain"], item["Precipitation"]))
 
             try:
-                fig = plot_forecast(dates, high_temps, low_temps)
+                fig = plot_forecast(dates, high_temps, low_temps, precipitations, uv_indexes)
                 for widget in plot_frame.winfo_children():
                     widget.destroy()
                 canvas = FigureCanvasTkAgg(fig, master=plot_frame)
@@ -194,7 +205,7 @@ def save_to_file():
 
     weather_data = get_weather(city, unit)
     if weather_data:
-        forecast_data, _, _, _ = get_forecast(city, days, unit)
+        forecast_data, _, _, _, _, _ = get_forecast(city, days, unit)
         if forecast_data:
             output_file = 'weather_forecast.csv'
             with open(output_file, 'a', newline='') as file:
@@ -209,57 +220,44 @@ def save_to_file():
                 for item in forecast_data:
                     writer.writerow([f"{key}: {value}" for key, value in item.items()])
                 writer.writerow([])
-
-            messagebox.showinfo("Saved", f"Data saved to {output_file}")
+            messagebox.showinfo("Success", f"Data saved to {output_file}.")
+        else:
+            messagebox.showerror("Error", "Unexpected format for forecast data.")
 
 root = tk.Tk()
-root.title("SimpleWeatherGUI")
+root.title("Weather Application")
 
-main_frame = ttk.Frame(root, padding="20")
-main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+tk.Label(root, text="City:").grid(row=0, column=0, padx=5, pady=5)
+city_entry = tk.Entry(root)
+city_entry.grid(row=0, column=1, padx=5, pady=5)
 
-title_label = ttk.Label(main_frame, text="Weather and Forecast Application", font=("Helvetica", 16, "bold"))
-title_label.grid(row=0, column=0, columnspan=2, pady=10, sticky=tk.W)
+tk.Label(root, text="Number of Days:").grid(row=1, column=0, padx=5, pady=5)
+days_entry = tk.Entry(root)
+days_entry.grid(row=1, column=1, padx=5, pady=5)
 
-ttk.Label(main_frame, text="City:", font=("Helvetica", 12)).grid(row=1, column=0, sticky=tk.W, padx=5, pady=5)
-city_entry = ttk.Entry(main_frame, width=20)
-city_entry.grid(row=1, column=1, padx=5, pady=5)
-
-ttk.Label(main_frame, text="Days (1-10):", font=("Helvetica", 12)).grid(row=2, column=0, sticky=tk.W, padx=5, pady=5)
-days_entry = ttk.Entry(main_frame, width=5)
-days_entry.grid(row=2, column=1, padx=5, pady=5)
-
-ttk.Label(main_frame, text="Temperature Unit:", font=("Helvetica", 12)).grid(row=3, column=0, sticky=tk.W, padx=5, pady=5)
-unit_combobox = ttk.Combobox(main_frame, values=["C", "F"], width=5)
+tk.Label(root, text="Unit:").grid(row=2, column=0, padx=5, pady=5)
+unit_combobox = ttk.Combobox(root, values=["C", "F"])
+unit_combobox.grid(row=2, column=1, padx=5, pady=5)
 unit_combobox.set("C")
-unit_combobox.grid(row=3, column=1, padx=5, pady=5)
 
-button_frame = ttk.Frame(main_frame)
-button_frame.grid(row=4, column=0, columnspan=2, pady=10)
-ttk.Button(button_frame, text="Get Weather and Forecast", command=display_weather_and_forecast).pack(side=tk.LEFT, padx=5)
-ttk.Button(button_frame, text="Save to File", command=save_to_file).pack(side=tk.LEFT, padx=5)
+tk.Button(root, text="Get Weather and Forecast", command=display_weather_and_forecast).grid(row=3, column=0, columnspan=2, padx=5, pady=5)
+tk.Button(root, text="Save to File", command=save_to_file).grid(row=4, column=0, columnspan=2, padx=5, pady=5)
 
-weather_frame = ttk.Frame(main_frame, padding="10")
-weather_frame.grid(row=5, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=10)
-ttk.Label(weather_frame, text="Weather Data:", font=("Helvetica", 12, "bold")).pack(anchor=tk.W)
-weather_tree = ttk.Treeview(weather_frame, columns=("Attribute", "Value"), show="headings", height=10)
+weather_tree = ttk.Treeview(root, columns=("Attribute", "Value"), show='headings')
 weather_tree.heading("Attribute", text="Attribute")
 weather_tree.heading("Value", text="Value")
-weather_tree.pack(fill=tk.BOTH, expand=True)
+weather_tree.grid(row=5, column=0, columnspan=2, padx=5, pady=5)
 
-forecast_frame = ttk.Frame(main_frame, padding="10")
-forecast_frame.grid(row=6, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=10)
-ttk.Label(forecast_frame, text="Forecast Data:", font=("Helvetica", 12, "bold")).pack(anchor=tk.W)
-forecast_tree = ttk.Treeview(forecast_frame, columns=("Date", "Condition", "High Temp", "Low Temp", "Chance of Rain", "Precipitation"), show="headings", height=10)
+forecast_tree = ttk.Treeview(root, columns=("Date", "Condition", "High Temp", "Low Temp", "Chance of Rain", "Precipitation"), show='headings')
 forecast_tree.heading("Date", text="Date")
 forecast_tree.heading("Condition", text="Condition")
 forecast_tree.heading("High Temp", text="High Temp")
 forecast_tree.heading("Low Temp", text="Low Temp")
 forecast_tree.heading("Chance of Rain", text="Chance of Rain")
 forecast_tree.heading("Precipitation", text="Precipitation")
-forecast_tree.pack(fill=tk.BOTH, expand=True)
+forecast_tree.grid(row=6, column=0, columnspan=2, padx=5, pady=5)
 
-plot_frame = ttk.Frame(root)
-plot_frame.grid(row=1, column=0, pady=10, sticky=(tk.W, tk.E, tk.N, tk.S))
+plot_frame = tk.Frame(root)
+plot_frame.grid(row=7, column=0, columnspan=2, padx=5, pady=5)
 
 root.mainloop()

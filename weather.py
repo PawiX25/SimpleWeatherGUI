@@ -6,6 +6,9 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import csv
 
 API_KEY = 'api_key'
+DEFAULT_UNIT = 'C'
+DEFAULT_CITY = 'New York'
+
 BASE_URL_CURRENT = 'http://api.weatherapi.com/v1/current.json'
 BASE_URL_FORECAST = 'http://api.weatherapi.com/v1/forecast.json'
 
@@ -218,43 +221,68 @@ def display_weather_and_forecast():
 
 def save_to_file():
     city = city_entry.get()
-    days_str = days_entry.get()
-
-    try:
-        days = int(days_str)
-    except ValueError:
-        messagebox.showerror("Error", "Number of days must be an integer.")
+    if not city:
+        messagebox.showerror("Error", "Please enter a city before saving data.")
         return
 
-    unit = unit_combobox.get()
+    with open(f'{city}_weather_forecast.csv', mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(["Attribute", "Value"])
+        for row in weather_tree.get_children():
+            attribute, value = weather_tree.item(row, 'values')
+            writer.writerow([attribute, value])
 
-    weather_data = get_weather(city, unit)
-    if weather_data:
-        forecast_data, _, _, _, _, _ = get_forecast(city, days, unit)
-        if forecast_data:
-            output_file = 'weather_forecast.csv'
-            with open(output_file, 'a', newline='') as file:
-                writer = csv.writer(file)
-                writer.writerow(["Weather for", city])
-                writer.writerow(["City", "Region", "Country", "Condition", "Temperature", "Feels Like", "Humidity", "Wind Speed", "Wind Direction", "UV Index", "Precipitation"])
-                for key, value in weather_data.items():
-                    writer.writerow([f"{key}: {value}"])
-                writer.writerow([])
-                writer.writerow(["Forecast for", city])
-                writer.writerow(["Date", "Condition", "High Temp", "Low Temp", "Chance of Rain", "Precipitation"])
-                for item in forecast_data:
-                    writer.writerow([f"{key}: {value}" for key, value in item.items()])
-                writer.writerow([])
-            messagebox.showinfo("Success", f"Data saved to {output_file}.")
-        else:
-            messagebox.showerror("Error", "Unexpected format for forecast data.")
+        writer.writerow([])
+        writer.writerow(["Date", "Condition", "High Temp", "Low Temp", "Chance of Rain", "Precipitation"])
+        for row in forecast_tree.get_children():
+            values = forecast_tree.item(row, 'values')
+            writer.writerow(values)
+
+    messagebox.showinfo("Saved", f"Weather and forecast data saved as {city}_weather_forecast.csv")
+
+def open_settings_window():
+    def save_settings():
+        global API_KEY, DEFAULT_UNIT, DEFAULT_CITY
+        API_KEY = api_key_entry.get()
+        DEFAULT_UNIT = unit_combobox.get()
+        DEFAULT_CITY = default_city_entry.get()
+        messagebox.showinfo("Settings Saved", "Settings have been updated successfully.")
+        settings_window.destroy()
+
+    settings_window = tk.Toplevel(root)
+    settings_window.title("Settings")
+
+    tk.Label(settings_window, text="API Key:").grid(row=0, column=0, padx=5, pady=5)
+    api_key_entry = tk.Entry(settings_window)
+    api_key_entry.grid(row=0, column=1, padx=5, pady=5)
+    api_key_entry.insert(0, API_KEY)
+
+    tk.Label(settings_window, text="Default Unit:").grid(row=1, column=0, padx=5, pady=5)
+    unit_combobox = ttk.Combobox(settings_window, values=["C", "F"])
+    unit_combobox.grid(row=1, column=1, padx=5, pady=5)
+    unit_combobox.set(DEFAULT_UNIT)
+
+    tk.Label(settings_window, text="Default City:").grid(row=2, column=0, padx=5, pady=5)
+    default_city_entry = tk.Entry(settings_window)
+    default_city_entry.grid(row=2, column=1, padx=5, pady=5)
+    default_city_entry.insert(0, DEFAULT_CITY)
+
+    tk.Button(settings_window, text="Save", command=save_settings).grid(row=3, column=0, columnspan=2, pady=10)
 
 root = tk.Tk()
 root.title("Weather Application")
 
+menu_bar = tk.Menu(root)
+root.config(menu=menu_bar)
+
+settings_menu = tk.Menu(menu_bar, tearoff=0)
+menu_bar.add_cascade(label="Settings", menu=settings_menu)
+settings_menu.add_command(label="Configure Settings", command=open_settings_window)
+
 tk.Label(root, text="City:").grid(row=0, column=0, padx=5, pady=5)
 city_entry = tk.Entry(root)
 city_entry.grid(row=0, column=1, padx=5, pady=5)
+city_entry.insert(0, DEFAULT_CITY)  
 
 tk.Label(root, text="Number of Days:").grid(row=1, column=0, padx=5, pady=5)
 days_entry = tk.Entry(root)
@@ -263,7 +291,7 @@ days_entry.grid(row=1, column=1, padx=5, pady=5)
 tk.Label(root, text="Unit:").grid(row=2, column=0, padx=5, pady=5)
 unit_combobox = ttk.Combobox(root, values=["C", "F"])
 unit_combobox.grid(row=2, column=1, padx=5, pady=5)
-unit_combobox.set("C")
+unit_combobox.set(DEFAULT_UNIT)
 
 tk.Label(root, text="Plot Style:").grid(row=3, column=0, padx=5, pady=5)
 plot_style_combobox = ttk.Combobox(root, values=["Line", "Bar", "Scatter", "Area"])

@@ -76,7 +76,7 @@ def get_weather(city, unit):
 def get_forecast(city, days, unit):
     if days < 1 or days > 10:
         messagebox.showerror("Error", "Forecast days must be between 1 and 10.")
-        return None
+        return None, [], [], []
 
     params = {
         'key': API_KEY,
@@ -91,7 +91,7 @@ def get_forecast(city, days, unit):
 
         if 'error' in data:
             messagebox.showerror("Error", data['error']['message'])
-            return None
+            return None, [], [], []
 
         forecast = data['forecast']['forecastday']
 
@@ -132,14 +132,18 @@ def get_forecast(city, days, unit):
                 "Chance of Rain": f"{chance_of_rain}%",
                 "Precipitation": precipitation
             })
+            dates.append(date)
 
         return forecast_data, dates, high_temps, low_temps
 
     except requests.RequestException as e:
         messagebox.showerror("Error", f"Error fetching forecast data for {city}: {e}")
-        return None
+        return None, [], [], []
 
 def plot_forecast(dates, high_temps, low_temps):
+    if not dates or not high_temps or not low_temps:
+        raise ValueError("No data available for plotting.")
+
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.plot(dates, high_temps, label='High Temp', marker='o', color='red', linestyle='-', linewidth=2)
     ax.plot(dates, low_temps, label='Low Temp', marker='o', color='blue', linestyle='-', linewidth=2)
@@ -171,12 +175,15 @@ def display_weather_and_forecast():
             for item in forecast_data:
                 forecast_tree.insert('', 'end', values=(item["Date"], item["Condition"], item["High Temp"], item["Low Temp"], item["Chance of Rain"], item["Precipitation"]))
 
-            fig = plot_forecast(dates, high_temps, low_temps)
-            for widget in plot_frame.winfo_children():
-                widget.destroy()  
-            canvas = FigureCanvasTkAgg(fig, master=plot_frame)
-            canvas.draw()
-            canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+            try:
+                fig = plot_forecast(dates, high_temps, low_temps)
+                for widget in plot_frame.winfo_children():
+                    widget.destroy()  
+                canvas = FigureCanvasTkAgg(fig, master=plot_frame)
+                canvas.draw()
+                canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+            except ValueError as ve:
+                messagebox.showerror("Error", str(ve))
         else:
             messagebox.showerror("Error", "Unexpected format for forecast data.")
 
@@ -212,10 +219,10 @@ frame = ttk.Frame(root, padding="10")
 frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
 
 ttk.Label(frame, text="City:").grid(row=0, column=0, sticky=tk.W)
-city_entry = ttk.Entry(frame, width=25)
+city_entry = ttk.Entry(frame, width=20)
 city_entry.grid(row=0, column=1)
 
-ttk.Label(frame, text="Forecast Days (1-10):").grid(row=1, column=0, sticky=tk.W)
+ttk.Label(frame, text="Days:").grid(row=1, column=0, sticky=tk.W)
 days_entry = ttk.Entry(frame, width=5)
 days_entry.grid(row=1, column=1)
 

@@ -156,6 +156,11 @@ def plot_forecast(dates, high_temps, low_temps, precipitations, uv_indexes, plot
     elif plot_style == "Bar":
         ax1.bar(dates, high_temps, label='High Temp', color='red', alpha=0.6)
         ax1.bar(dates, low_temps, label='Low Temp', color='blue', alpha=0.6)
+    elif plot_style == "Scatter":
+        ax1.scatter(dates, high_temps, label='High Temp', color='red', s=100, marker='o')
+        ax1.scatter(dates, low_temps, label='Low Temp', color='blue', s=100, marker='o')
+    elif plot_style == "Area":
+        ax1.fill_between(dates, high_temps, low_temps, color='lightcoral', label='Temperature Range', alpha=0.4)
 
     ax1.set_xlabel('Date', fontsize=12)
     ax1.set_ylabel('Temperature (°C or °F)', fontsize=12)
@@ -247,7 +252,7 @@ unit_combobox.grid(row=2, column=1, padx=5, pady=5)
 unit_combobox.set("C")
 
 tk.Label(root, text="Plot Style:").grid(row=3, column=0, padx=5, pady=5)
-plot_style_combobox = ttk.Combobox(root, values=["Line", "Bar"])
+plot_style_combobox = ttk.Combobox(root, values=["Line", "Bar", "Scatter", "Area"])
 plot_style_combobox.grid(row=3, column=1, padx=5, pady=5)
 plot_style_combobox.set("Line")
 

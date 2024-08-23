@@ -1,3 +1,4 @@
 requests
-tabulate
+tkinter
+ttkthemes
 matplotlib

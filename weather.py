@@ -21,7 +21,7 @@ def get_weather(city, unit):
         data = response.json()
 
         if 'error' in data:
-            messagebox.showerror("Error", data['error']['message'])
+            messagebox.showerror("Error", f"API Error: {data['error']['message']}")
             return None
 
         location = data['location']
@@ -74,8 +74,8 @@ def get_weather(city, unit):
         return None
 
 def get_forecast(city, days, unit):
-    if days < 1 or days > 10:
-        messagebox.showerror("Error", "Forecast days must be between 1 and 10.")
+    if not isinstance(days, int) or days < 1 or days > 10:
+        messagebox.showerror("Error", "Forecast days must be an integer between 1 and 10.")
         return None, [], [], [], [], []
 
     params = {
@@ -90,7 +90,7 @@ def get_forecast(city, days, unit):
         data = response.json()
 
         if 'error' in data:
-            messagebox.showerror("Error", data['error']['message'])
+            messagebox.showerror("Error", f"API Error: {data['error']['message']}")
             return None, [], [], [], [], []
 
         forecast = data['forecast']['forecastday']
@@ -180,7 +180,14 @@ def plot_forecast(dates, high_temps, low_temps, precipitations, uv_indexes, plot
 
 def display_weather_and_forecast():
     city = city_entry.get()
-    days = int(days_entry.get())
+    days_str = days_entry.get()
+
+    try:
+        days = int(days_str)
+    except ValueError:
+        messagebox.showerror("Error", "Number of days must be an integer.")
+        return
+
     unit = unit_combobox.get()
     plot_style = plot_style_combobox.get()
 
@@ -211,7 +218,14 @@ def display_weather_and_forecast():
 
 def save_to_file():
     city = city_entry.get()
-    days = int(days_entry.get())
+    days_str = days_entry.get()
+
+    try:
+        days = int(days_str)
+    except ValueError:
+        messagebox.showerror("Error", "Number of days must be an integer.")
+        return
+
     unit = unit_combobox.get()
 
     weather_data = get_weather(city, unit)

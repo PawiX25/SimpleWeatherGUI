@@ -61,6 +61,12 @@ pip install requests matplotlib ttkthemes
 2. **Save Data**:
    - Click "Save to File" to save the data as a CSV file with the name format `{city}_weather_forecast.csv`.
 
+## Screenshot
+
+Here is an example of the Weather Forecast Application in action:
+
+![Screenshot](https://github.com/user-attachments/assets/621e3912-b523-4d3c-a614-6e70e77581fd)
+
 ## Output
 
 - **GUI Output**: Displays current weather and forecast in tabular format and a plot of temperature trends.
